@@ -1,8 +1,8 @@
 package sociation
 
 // @author  Mikhail Kirillov <mikkirillov@yandex.ru>
-// @version 1.000
-// @date    2018-06-26
+// @version 1.001
+// @date    2018-06-27
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/belfinor/Helium/log"
 	"github.com/belfinor/Helium/net/http/client"
+	"github.com/belfinor/lcache"
 )
 
 type Result struct {
@@ -30,11 +31,13 @@ type Request struct {
 	Out  chan *SociumResp
 }
 
+var cache *lcache.Cache = lcache.New(&lcache.Config{TTL: 86400, Size: 5000, Clean: 100, InputBuffer: 100, Nodes: 24})
 var input chan *Request = make(chan *Request, 100)
 
 func worker() {
 
 	for r := range input {
+
 		res := fetch(r.Word)
 		if res != nil {
 			r.Out <- res
@@ -82,24 +85,33 @@ func fetch(phrase string) *SociumResp {
 }
 
 func Get(ctx context.Context, word string) []Result {
-	req := &Request{
-		Word: word,
-		Out:  make(chan *SociumResp, 1),
-	}
 
-	input <- req
-
-	var res []Result
-
-	select {
-	case resp, ok := <-req.Out:
-		if ok {
-			res = resp.Associations
+	r := cache.Fetch(word, func(key string) interface{} {
+		req := &Request{
+			Word: word,
+			Out:  make(chan *SociumResp, 1),
 		}
-	case <-ctx.Done():
+
+		input <- req
+
+		var res []Result
+
+		select {
+		case resp, ok := <-req.Out:
+			if ok {
+				res = resp.Associations
+			}
+		case <-ctx.Done():
+		}
+
+		return res
+	})
+
+	if r == nil {
+		return nil
 	}
 
-	return res
+	return r.([]Result)
 }
 
 func GetWords(ctx context.Context, word string) []string {
