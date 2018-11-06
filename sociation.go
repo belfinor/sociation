@@ -1,8 +1,8 @@
 package sociation
 
 // @author  Mikhail Kirillov <mikkirillov@yandex.ru>
-// @version 1.001
-// @date    2018-06-27
+// @version 1.002
+// @date    2018-11-06
 
 import (
 	"context"
@@ -69,7 +69,7 @@ func fetch(phrase string) *SociumResp {
 	ua := client.New()
 	ua.Timeout = time.Second * 10
 
-	res, err := ua.Request("POST", "http://sociation.org/ajax/word_associations/", headers, []byte(content))
+	res, err := ua.Request("POST", "https://sociation.org/ajax/word_associations/", headers, []byte(content))
 	if err != nil {
 		log.Error(err.Error())
 		return nil
