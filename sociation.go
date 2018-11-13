@@ -1,8 +1,8 @@
 package sociation
 
 // @author  Mikhail Kirillov <mikkirillov@yandex.ru>
-// @version 1.002
-// @date    2018-11-06
+// @version 1.003
+// @date    2018-11-13
 
 import (
 	"context"
@@ -33,6 +33,8 @@ type Request struct {
 
 var cache *lcache.Cache = lcache.New(&lcache.Config{TTL: 86400, Size: 5000, Clean: 100, InputBuffer: 100, Nodes: 24})
 var input chan *Request = make(chan *Request, 100)
+
+var SERVER_URL string = "https://sociation.org/ajax/word_associations/"
 
 func worker() {
 
@@ -69,7 +71,7 @@ func fetch(phrase string) *SociumResp {
 	ua := client.New()
 	ua.Timeout = time.Second * 10
 
-	res, err := ua.Request("POST", "https://sociation.org/ajax/word_associations/", headers, []byte(content))
+	res, err := ua.Request("POST", SERVER_URL, headers, []byte(content))
 	if err != nil {
 		log.Error(err.Error())
 		return nil
