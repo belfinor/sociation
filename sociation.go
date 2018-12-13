@@ -1,8 +1,8 @@
 package sociation
 
 // @author  Mikhail Kirillov <mikkirillov@yandex.ru>
-// @version 1.003
-// @date    2018-11-13
+// @version 1.004
+// @date    2018-12-13
 
 import (
 	"context"
@@ -31,7 +31,7 @@ type Request struct {
 	Out  chan *SociumResp
 }
 
-var cache *lcache.Cache = lcache.New(&lcache.Config{TTL: 86400, Size: 5000, Clean: 100, InputBuffer: 100, Nodes: 24})
+var cache *lcache.Cache = lcache.New(&lcache.Config{TTL: 86400 * 30, Size: 5000, Nodes: 24})
 var input chan *Request = make(chan *Request, 100)
 
 var SERVER_URL string = "https://sociation.org/ajax/word_associations/"
