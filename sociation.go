@@ -1,8 +1,8 @@
 package sociation
 
 // @author  Mikhail Kirillov <mikkirillov@yandex.ru>
-// @version 1.004
-// @date    2018-12-13
+// @version 1.005
+// @date    2019-02-19
 
 import (
 	"context"
@@ -26,31 +26,9 @@ type SociumResp struct {
 	Word         string   `json:"word"`
 }
 
-type Request struct {
-	Word string
-	Out  chan *SociumResp
-}
-
 var cache *lcache.Cache = lcache.New(&lcache.Config{TTL: 86400 * 30, Size: 5000, Nodes: 24})
-var input chan *Request = make(chan *Request, 100)
 
 var SERVER_URL string = "https://sociation.org/ajax/word_associations/"
-
-func worker() {
-
-	for r := range input {
-
-		res := fetch(r.Word)
-		if res != nil {
-			r.Out <- res
-		}
-		close(r.Out)
-	}
-}
-
-func init() {
-	go worker()
-}
 
 func fetch(phrase string) *SociumResp {
 
@@ -89,17 +67,23 @@ func fetch(phrase string) *SociumResp {
 func Get(ctx context.Context, word string) []Result {
 
 	r := cache.Fetch(word, func(key string) interface{} {
-		req := &Request{
-			Word: word,
-			Out:  make(chan *SociumResp, 1),
-		}
 
-		input <- req
+		out := make(chan *SociumResp, 1)
+
+		go func() {
+
+			res := fetch(word)
+			if res != nil {
+				out <- res
+			}
+			close(out)
+
+		}()
 
 		var res []Result
 
 		select {
-		case resp, ok := <-req.Out:
+		case resp, ok := <-out:
 			if ok {
 				res = resp.Associations
 			}
@@ -110,7 +94,7 @@ func Get(ctx context.Context, word string) []Result {
 	})
 
 	if r == nil {
-		return nil
+		return []Result{}
 	}
 
 	return r.([]Result)
